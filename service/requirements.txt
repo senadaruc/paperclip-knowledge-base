@@ -1,0 +1,13 @@
+mcp>=1.12,<2
+uvicorn>=0.30
+starlette>=0.40
+httpx>=0.27
+pyyaml>=6
+numpy>=1.26
+lancedb>=0.17
+pyarrow>=16
+fastembed>=0.5
+pymupdf>=1.24
+python-docx>=1.1
+openpyxl>=3.1
+python-multipart>=0.0.9

@@ -1,0 +1,83 @@
+# Knowledge Base for Paperclip agents — copy to config.yaml and adjust.
+# Every model endpoint is OpenAI-compatible. Choose where each model runs:
+#   CPU, bundled Ollama:   base_url: http://ollama:11434/v1        api_key: ""
+#   GPU server (vLLM ...): base_url: http://gpu-server:8000/v1     api_key: ${GPU_API_KEY}
+#   Hosted API:            base_url: https://api.example.com/v1    api_key: ${HOSTED_API_KEY}
+# Settings saved on the admin page (or the Paperclip plugin page) override this file.
+
+embedding:
+  provider: openai
+  base_url: ${EMBED_BASE_URL:-http://ollama:11434/v1}
+  api_key: ${EMBED_API_KEY:-}
+  model: ${EMBED_MODEL:-qwen3-embedding:0.6b}
+  # Qwen3-Embedding expects an instruction on queries (not on documents)
+  query_prefix: "Instruct: Given a question, retrieve passages that answer it\nQuery: "
+  batch_size: 4           # small batches keep searches responsive while indexing
+  timeout: 300
+
+rerank:
+  # local  = cross-encoder inside the service (CPU, ONNX via fastembed)
+  # openai = remote /rerank endpoint (vLLM, Jina- or Cohere-compatible)
+  # none   = no reranking
+  provider: ${RERANK_PROVIDER:-local}
+  base_url: ${RERANK_BASE_URL:-}
+  api_key: ${RERANK_API_KEY:-}
+  model: ${RERANK_MODEL:-jinaai/jina-reranker-v1-turbo-en}
+  candidates: 12          # rescored per search (CPU: keep small; GPU: 30)
+  max_chars: 600
+  timeout: 60
+
+llm:
+  # Only used by the optional `ask` tool; Paperclip agents normally reason over `search` results themselves.
+  provider: ${LLM_PROVIDER:-openai}
+  base_url: ${LLM_BASE_URL:-http://ollama:11434/v1}
+  api_key: ${LLM_API_KEY:-}
+  model: ${LLM_MODEL:-qwen3:1.7b}
+  reasoning_effort: ${LLM_REASONING_EFFORT:-none}   # Ollama + Qwen3: skip the thinking phase; leave empty for providers that reject it
+  max_tokens: 600
+  timeout: 300
+
+search:
+  chunk_chars: 1400
+  chunk_overlap: 150
+  candidates: 30          # per retriever (vector and keyword), before fusion and rerank
+
+reindex_interval_minutes: 360   # changed sources are re-indexed automatically
+
+admin_key: ${RAG_ADMIN_KEY}
+
+collections:
+  # Indexed in this order. Source types: wiki_dir, markdown_dir, qa_jsonl, files_dir (see README).
+  qa:
+    description: Past answers to customer questions and questionnaires
+    anonymise: true
+    sources:
+      - {type: qa_jsonl, path: /sources/qa.jsonl, label: qa}
+      - {type: files_dir, path: /inbox/qa, label: qa-inbox}
+  docs:
+    description: Manuals, architecture and product documents
+    anonymise: true
+    sources:
+      - {type: files_dir, path: /inbox/docs, label: docs}
+  wiki:
+    description: Product wiki with page links
+    sources:
+      - {type: wiki_dir, path: /sources/wiki}
+  private:
+    description: Leadership-only material (strategy, finance, contracts)
+    sources:
+      - {type: files_dir, path: /inbox/private, label: private}
+
+# One key per Paperclip connection; a key only ever sees its listed collections.
+clients:
+  staff:
+    key: ${RAG_KEY_STAFF}
+    collections: [wiki, docs, qa]
+  leadership:
+    key: ${RAG_KEY_LEADERSHIP}
+    collections: ["*"]
+
+# Regular expressions replaced with "the customer" in collections marked anonymise: true
+customer_names:
+  - '\bExample Bank\b'
+  - '\bACME(?: Corp)?\b'

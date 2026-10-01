@@ -1,0 +1,27 @@
+{
+  "name": "paperclip-plugin-knowledge-base",
+  "version": "0.2.0",
+  "description": "Paperclip plugin: manage the Knowledge Base (RAG) your agents search — collections, uploads, model locations, test search, access",
+  "type": "module",
+  "license": "MIT",
+  "files": ["dist"],
+  "paperclipPlugin": {
+    "manifest": "./dist/manifest.js",
+    "worker": "./dist/worker.js",
+    "ui": "./dist/ui/"
+  },
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "@paperclipai/plugin-sdk": "^2026.916.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "esbuild": "^0.25.0",
+    "react": "^19.2.0",
+    "typescript": "^5.9.0"
+  },
+  "peerDependencies": { "react": ">=18" },
+  "engines": { "node": ">=24.11.0" }
+}

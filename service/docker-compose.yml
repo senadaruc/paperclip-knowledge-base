@@ -1,0 +1,36 @@
+# Knowledge Base service + local CPU models.
+#   cp .env.example .env && cp config/config.example.yaml config/config.yaml   (fill in the keys)
+#   docker compose up -d --build
+#   docker exec kb-ollama ollama pull qwen3-embedding:0.6b && docker exec kb-ollama ollama pull qwen3:1.7b
+services:
+  knowledge-base:
+    build: .
+    container_name: knowledge-base
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./config:/config:ro
+      - ./data:/data              # LanceDB tables, embedding cache, saved settings
+      - ./inbox:/inbox            # upload folders, one per collection (writable: the admin page saves here)
+      - ./sources:/sources:ro     # wiki exports, Q&A library and other read-only sources
+    ports:
+      - "127.0.0.1:8790:8790"     # admin page + MCP; publish through your own reverse proxy if needed
+    networks: [default, paperclip]
+    depends_on: [ollama]
+    mem_limit: 4g
+
+  ollama:                         # not needed if every model endpoint points elsewhere
+    image: ollama/ollama:latest
+    container_name: kb-ollama
+    restart: unless-stopped
+    environment:
+      OLLAMA_KEEP_ALIVE: "30m"
+      OLLAMA_NUM_PARALLEL: "2"    # a search never waits behind an indexing batch
+    volumes:
+      - ./ollama:/root/.ollama
+    mem_limit: 8g
+
+networks:
+  paperclip:                      # the Docker network your Paperclip container is on
+    name: ${PAPERCLIP_NETWORK:-paperclip_default}
+    external: true

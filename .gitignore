@@ -1,0 +1,11 @@
+node_modules/
+plugin/dist/
+service/.env
+service/config/config.yaml
+service/data/
+service/inbox/
+service/sources/
+service/ollama/
+__pycache__/
+*.pyc
+.DS_Store

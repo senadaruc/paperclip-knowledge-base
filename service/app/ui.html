@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knowledge Base</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--brand:#ee3342;--brand-ink:#fff;--ok:#047857;--okbg:#d1fae5;--warn:#92400e;--warnbg:#fef3c7;--err:#991b1b;--errbg:#fee2e2;--chip:#f3f4f6;--shadow:0 1px 2px rgba(0,0,0,.05)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1115;--panel:#171a21;--ink:#e5e7eb;--muted:#9ca3af;--line:#272b35;--chip:#222631;--okbg:#06372a;--ok:#6ee7b7;--warnbg:#3b2a07;--warn:#fcd34d;--errbg:#3f1010;--err:#fca5a5;--shadow:none}}
+:root[data-theme="dark"]{--bg:#0f1115;--panel:#171a21;--ink:#e5e7eb;--muted:#9ca3af;--line:#272b35;--chip:#222631;--okbg:#06372a;--ok:#6ee7b7;--warnbg:#3b2a07;--warn:#fcd34d;--errbg:#3f1010;--err:#fca5a5;--shadow:none}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:14px 24px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:2}
+.logo{width:28px;height:28px;border-radius:7px;background:var(--brand);display:grid;place-items:center;color:#fff;font-weight:700}
+header h1{font-size:16px;margin:0;font-weight:600}header .sub{color:var(--muted);font-size:13px}
+header .sp{flex:1}
+nav{display:flex;gap:4px;padding:0 24px;background:var(--panel);border-bottom:1px solid var(--line);overflow-x:auto}
+nav button{border:0;background:none;color:var(--muted);padding:12px 12px;font:inherit;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+nav button.on{color:var(--ink);border-bottom-color:var(--brand);font-weight:600}
+main{max-width:1100px;margin:0 auto;padding:24px 16px 60px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:var(--shadow)}
+.card h2{font-size:15px;margin:0 0 4px}.card p.hint{color:var(--muted);margin:0 0 14px;font-size:13px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;background:var(--chip);color:var(--muted)}
+.pill.ok{background:var(--okbg);color:var(--ok)}.pill.warn{background:var(--warnbg);color:var(--warn)}.pill.err{background:var(--errbg);color:var(--err)}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:7px 12px;font:inherit;cursor:pointer}
+.btn:hover{border-color:var(--muted)}.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}.btn.small{padding:4px 9px;font-size:12px}.btn:disabled{opacity:.5;cursor:default}
+.btn.danger{color:var(--err)}
+input,select,textarea{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:8px 10px;font:inherit}
+label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row>*{flex:0 0 auto}.grow{flex:1 1 200px!important}
+.muted{color:var(--muted)}.small{font-size:12px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:28px;text-align:center;color:var(--muted);cursor:pointer;transition:.15s}
+.drop.over{border-color:var(--brand);color:var(--ink);background:var(--chip)}
+.res{border-top:1px solid var(--line);padding:12px 0}.res:first-child{border-top:0}
+.res .t{font-weight:600}.res .x{white-space:pre-wrap;color:var(--ink);opacity:.85;margin-top:6px;font-size:13px;max-height:9em;overflow:hidden}
+.toast{position:fixed;right:16px;bottom:16px;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:8px;opacity:0;transition:.2s;pointer-events:none;max-width:420px}.toast.on{opacity:1}
+#login{max-width:380px;margin:12vh auto}
+.presets .btn{margin:0 6px 6px 0}
+@media (max-width:640px){header{padding:12px 16px}td,th{padding:8px 4px}.hide-sm{display:none}}
+</style>
+</head>
+<body>
+<div id="login" class="card" hidden>
+  <div class="row" style="margin-bottom:10px"><div class="logo">K</div><h2 style="margin:0">Knowledge Base</h2></div>
+  <p class="hint">Sign in with the RAG admin key (RAG_ADMIN_KEY in the service's .env).</p>
+  <input id="key" type="password" placeholder="Admin key" autocomplete="current-password">
+  <div class="row" style="margin-top:12px"><button class="btn primary" onclick="login()">Sign in</button><span id="loginerr" class="small" style="color:var(--err)"></span></div>
+</div>
+
+<div id="app" hidden>
+<header><div class="logo">K</div><div><h1>Knowledge Base</h1><div class="sub">RAG for Paperclip agents</div></div><div class="sp"></div>
+<button class="btn small" onclick="load()">Refresh</button><button class="btn small" onclick="logout()">Sign out</button></header>
+<nav id="tabs"><button data-t="collections" class="on">Collections</button><button data-t="upload">Upload</button><button data-t="models">Models</button><button data-t="search">Test search</button><button data-t="access">Access</button></nav>
+<main>
+<section data-p="collections">
+  <div class="card"><h2>Collections</h2><p class="hint">Each collection is indexed separately. Changed sources are re-indexed every <span id="ivl"></span> minutes; use Re-index to do it now.</p>
+  <table><thead><tr><th>Collection</th><th class="hide-sm">Contents</th><th>Passages</th><th>Status</th><th></th></tr></thead><tbody id="cols"></tbody></table></div>
+</section>
+
+<section data-p="upload" hidden>
+  <div class="card"><h2>Upload documents</h2><p class="hint">PDF, Word, Excel, Markdown or text, up to 50 MB each. Files go into the collection's drop folder and are indexed straight away. Collections marked "anonymised" replace known customer names.</p>
+  <label>Collection</label><select id="upcol"></select>
+  <div id="drop" class="drop" style="margin-top:12px">Drop files here or click to choose<input id="file" type="file" multiple hidden></div>
+  <div id="upmsg" class="small muted" style="margin-top:8px"></div></div>
+  <div class="card"><h2>Files in <span id="upname"></span></h2><table><thead><tr><th>File</th><th class="hide-sm">Size</th><th class="hide-sm">Added</th><th></th></tr></thead><tbody id="files"></tbody></table></div>
+</section>
+
+<section data-p="models" hidden>
+  <div class="card"><h2>Where the models run</h2><p class="hint">Every model is reached through an OpenAI-compatible API. Pick a preset, adjust, then Save. Changing the embedding model re-embeds every collection (slow on a CPU, fast on a GPU).</p>
+  <div class="presets"><span class="small muted">Presets:&nbsp;</span><button class="btn small" onclick="preset('cpu')">CPU (bundled Ollama)</button><button class="btn small" onclick="preset('gpu')">GPU server (vLLM)</button><button class="btn small" onclick="preset('hosted')">Hosted API</button></div></div>
+  <div class="grid" id="models"></div>
+</section>
+
+<section data-p="search" hidden>
+  <div class="card"><h2>Test search</h2><p class="hint">Exactly what the agents get from the search tool.</p>
+  <div class="row"><input id="q" class="grow" placeholder="e.g. Can everything run on-premises without internet?" onkeydown="if(event.key==='Enter')doSearch()"><select id="qcol" style="width:auto"></select><button class="btn primary" onclick="doSearch()">Search</button></div>
+  <div id="qmeta" class="small muted" style="margin-top:8px"></div><div id="results" style="margin-top:6px"></div></div>
+</section>
+
+<section data-p="access" hidden>
+  <div class="card"><h2>Who can search what</h2><p class="hint">Each Paperclip connection uses its own key; the key decides the collections. Keys and collection lists live in the service's .env and config.yaml.</p>
+  <table><thead><tr><th>Client</th><th>Collections</th></tr></thead><tbody id="clients"></tbody></table></div>
+</section>
+</main>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let D=null, curUp=null, edits={};
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),3500)}
+async function api(path,opt={}){const r=await fetch(path,{credentials:'same-origin',...opt,headers:{...(opt.body&&!(opt.body instanceof FormData)?{'Content-Type':'application/json'}:{}),...(opt.headers||{})}});
+  if(r.status===401){show(false);throw new Error('login')} const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||r.statusText); return j}
+function show(on){$('#login').hidden=on;$('#app').hidden=!on;if(!on)setTimeout(()=>$('#key').focus(),50)}
+async function login(){try{await api('/admin/login',{method:'POST',body:JSON.stringify({key:$('#key').value})});$('#key').value='';show(true);load()}catch(e){$('#loginerr').textContent=e.message==='login'?'Wrong key':e.message}}
+async function logout(){await fetch('/admin/logout',{method:'POST'});show(false)}
+$('#key').addEventListener('keydown',e=>{if(e.key==='Enter')login()});
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('section[data-p]').forEach(s=>s.hidden=s.dataset.p!==b.dataset.t)});
+function statusPill(s){s=s||'';if(s==='ready')return'<span class="pill ok">ready</span>';if(s.startsWith('error'))return`<span class="pill err" title="${esc(s)}">error</span>`;if(s==='not indexed'||s==='empty')return`<span class="pill">${esc(s)}</span>`;return`<span class="pill warn">${esc(s)}</span>`}
+function ago(t){if(!t)return'—';return new Date(t*1000).toLocaleString()}
+function size(b){return b>1048576?(b/1048576).toFixed(1)+' MB':Math.max(1,Math.round(b/1024))+' KB'}
+async function load(){
+  try{D=await api('/admin/api/overview')}catch(e){return}
+  show(true);$('#ivl').textContent=D.reindex_interval_minutes;
+  $('#cols').innerHTML=D.collections.map(c=>`<tr><td><b>${esc(c.name)}</b>${c.anonymise?' <span class="pill">anonymised</span>':''}<div class="small muted">${esc(c.description)}</div></td>
+   <td class="hide-sm small muted">${c.uploads?`${c.files.length} uploaded file(s)`:''}${c.other_sources.length?`<div class="mono">${c.other_sources.map(esc).join('<br>')}</div>`:''}</td>
+   <td>${c.chunks}<div class="small muted">${c.indexed_at||''}</div></td><td>${statusPill(c.status)}</td>
+   <td><button class="btn small" onclick="reindex('${esc(c.name)}')">Re-index</button></td></tr>`).join('');
+  const up=D.collections.filter(c=>c.uploads);
+  $('#upcol').innerHTML=up.map(c=>`<option ${c.name===curUp?'selected':''}>${esc(c.name)}</option>`).join('');
+  curUp=$('#upcol').value; renderFiles();
+  $('#qcol').innerHTML='<option value="">all collections</option>'+D.collections.map(c=>`<option>${esc(c.name)}</option>`).join('');
+  $('#clients').innerHTML=D.clients.map(c=>`<tr><td><b>${esc(c.name)}</b></td><td>${c.collections.map(x=>`<span class="pill">${esc(x)}</span>`).join(' ')}</td></tr>`).join('');
+  renderModels();
+  if(D.collections.some(c=>c.status&&c.status!=='ready'&&c.status!=='not indexed'&&c.status!=='empty'&&!c.status.startsWith('error'))) {clearTimeout(load._t);load._t=setTimeout(load,8000)}
+}
+function renderFiles(){const c=D.collections.find(x=>x.name===curUp);$('#upname').textContent=curUp||'';
+  $('#files').innerHTML=(c&&c.files.length)?c.files.map(f=>`<tr><td>${esc(f.name)}</td><td class="hide-sm">${size(f.size)}</td><td class="hide-sm small muted">${ago(f.modified)}</td><td><button class="btn small danger" onclick="delFile('${esc(curUp)}',${JSON.stringify(f.name).replace(/"/g,'&quot;')})">Delete</button></td></tr>`).join(''):'<tr><td colspan="4" class="muted">No uploaded files yet.</td></tr>'}
+$('#upcol').onchange=e=>{curUp=e.target.value;renderFiles()};
+const drop=$('#drop'),fi=$('#file');drop.onclick=()=>fi.click();
+drop.ondragover=e=>{e.preventDefault();drop.classList.add('over')};drop.ondragleave=()=>drop.classList.remove('over');
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');upload(e.dataTransfer.files)};fi.onchange=()=>upload(fi.files);
+async function upload(files){if(!files.length)return;const fd=new FormData();fd.append('collection',curUp);[...files].forEach(f=>fd.append('files',f));
+  $('#upmsg').textContent=`Uploading ${files.length} file(s)…`;
+  try{const r=await api('/admin/api/upload',{method:'POST',body:fd});$('#upmsg').textContent=`Saved ${r.saved.length}${r.rejected.length?', rejected: '+r.rejected.join('; '):''}. Indexing started.`;fi.value='';load()}catch(e){$('#upmsg').textContent='Upload failed: '+e.message}}
+async function delFile(col,name){if(!confirm(`Delete ${name} from ${col}?`))return;try{await api('/admin/api/delete',{method:'POST',body:JSON.stringify({collection:col,name})});toast('Deleted; re-indexing');load()}catch(e){toast(e.message)}}
+async function reindex(n){await api('/admin/reindex?force=1&collection='+encodeURIComponent(n),{method:'POST'});toast('Re-index started: '+n);setTimeout(load,1500)}
+const ROLE={embedding:{t:'Embedding',d:'Turns passages and queries into vectors. Required.'},rerank:{t:'Reranker',d:'Re-orders the best candidates. "local" runs on the CPU inside the service.'},llm:{t:'Answer model',d:'Only for the ask tool; agents normally reason with Claude.'}};
+const PRESETS={cpu:{embedding:{provider:'openai',base_url:'http://ollama:11434/v1',model:'qwen3-embedding:0.6b'},rerank:{provider:'local',base_url:'',model:'jinaai/jina-reranker-v1-turbo-en',candidates:12},llm:{provider:'openai',base_url:'http://ollama:11434/v1',model:'qwen3:1.7b'}},
+ gpu:{embedding:{provider:'openai',base_url:'http://gpu-server:8000/v1',model:'Qwen/Qwen3-Embedding-4B'},rerank:{provider:'openai',base_url:'http://gpu-server:8000/v1',model:'Qwen/Qwen3-Reranker-4B',candidates:30},llm:{provider:'openai',base_url:'http://gpu-server:8000/v1',model:'openai/gpt-oss-120b'}},
+ hosted:{embedding:{provider:'openai',base_url:'https://api.example.com/v1',model:''},rerank:{provider:'openai',base_url:'https://api.example.com/v1',model:''},llm:{provider:'openai',base_url:'https://api.example.com/v1',model:''}}};
+function renderModels(){$('#models').innerHTML=['embedding','rerank','llm'].map(r=>{const m={...D.models[r],...(edits[r]||{})};const loc=r==='rerank';
+ return`<div class="card" id="m-${r}"><h2>${ROLE[r].t}</h2><p class="hint">${ROLE[r].d}</p>
+ <label>Provider</label><select data-k="provider">${['openai',...(loc?['local']:[]),'none'].map(p=>`<option value="${p}" ${m.provider===p?'selected':''}>${p==='openai'?'OpenAI-compatible API':p==='local'?'local (in this container, CPU)':'off'}</option>`).join('')}</select>
+ <label>Base URL</label><input data-k="base_url" value="${esc(m.base_url)}" placeholder="http://ollama:11434/v1">
+ <label>Model</label><input data-k="model" value="${esc(m.model)}">
+ <label>API key ${m.api_key_set?'<span class="pill ok">set</span>':'<span class="pill">none</span>'}</label><input data-k="api_key" type="password" placeholder="${m.api_key_set?'leave empty to keep':'optional'}">
+ ${r==='rerank'?`<label>Candidates rescored per search</label><input data-k="candidates" type="number" value="${esc(m.candidates)}">`:''}
+ <div class="row" style="margin-top:14px"><button class="btn primary" onclick="saveModel('${r}')">Save</button><button class="btn" onclick="testModel('${r}')">Test</button>${m.api_key_set?`<button class="btn small" onclick="saveModel('${r}',true)">Clear key</button>`:''}</div>
+ <div class="small muted" id="t-${r}" style="margin-top:8px"></div></div>`}).join('')}
+function preset(p){edits=JSON.parse(JSON.stringify(PRESETS[p]));renderModels();toast('Preset filled in: review, then Save each card')}
+async function saveModel(r,clear){const card=$('#m-'+r),b={role:r};card.querySelectorAll('[data-k]').forEach(i=>{if(i.value!==''||i.dataset.k!=='api_key')b[i.dataset.k]=i.value});if(clear)b.clear_api_key=true;
+  try{const res=await api('/admin/api/settings',{method:'POST',body:JSON.stringify(b)});delete edits[r];toast(res.reembedding?'Saved. Re-embedding all collections…':'Saved');load()}catch(e){toast('Save failed: '+e.message)}}
+async function testModel(r){const el=$('#t-'+r);el.textContent='Testing…';try{const x=await api('/admin/api/test',{method:'POST',body:JSON.stringify({role:r})});el.innerHTML=(x.ok?'<span class="pill ok">ok</span> ':'<span class="pill err">failed</span> ')+esc(x.detail)+(x.ms!=null?` · ${x.ms} ms`:'')}catch(e){el.textContent=e.message}}
+async function doSearch(){const q=$('#q').value.trim();if(!q)return;$('#qmeta').textContent='Searching…';$('#results').innerHTML='';
+  try{const r=await api('/admin/api/search',{method:'POST',body:JSON.stringify({query:q,collection:$('#qcol').value,top_k:6})});
+   $('#qmeta').textContent=`${r.results.length} result(s) · ${r.mode} · ${r.ms} ms`;
+   $('#results').innerHTML=r.results.map(x=>`<div class="res"><div class="row"><span class="pill">${esc(x.collection)}</span><span class="t">${esc(x.title)}</span>${x.section?`<span class="muted">· ${esc(x.section)}</span>`:''}<span class="sp"></span><span class="small muted">score ${x.score}</span></div>
+   <div class="small muted mono">${esc(x.page||x.source)}</div><div class="x">${esc(x.text)}</div></div>`).join('')||'<div class="muted">No results.</div>'}catch(e){$('#qmeta').textContent='Search failed: '+e.message}}
+load();
+</script>
+</body>
+</html>
