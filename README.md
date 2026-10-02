@@ -135,11 +135,15 @@ On a low-power 4-core CPU (AMD Ryzen Embedded V1500B, no GPU), with the CPU defa
 
 | | Result |
 |---|---|
-| First-time embedding | about 25 passages per minute (cached afterwards) |
-| Search, warm | 1–3 s including rerank |
+| First-time embedding, long passages (documents with large tables, wiki articles) | about 6 passages per minute (batches of 4 take 33–50 s) |
+| First-time embedding, short passages (Q&A-style answers) | about 4× faster than long passages |
+| Full first index, 4 collections, about 6,700 passages | about 9.5 hours; cached afterwards, so later runs only embed changed files |
+| Search while idle and warm (hybrid + rerank, top 5) | 1.1–1.9 s, about 1.35 s on average |
+| First search after an idle period | 4–5 s once the models have been unloaded (`OLLAMA_KEEP_ALIVE` in `service/docker-compose.yml`, default `30m`; set `-1` to keep them loaded) |
+| Search while indexing | about 2.5 s |
 | Paraphrase recall test, 20 reworded questions over 822 past answers, target in top 5 | **17/20 hybrid** vs 14/20 keyword-only |
 
-A GPU server turns the first-time embedding from hours into seconds and allows the larger embedding and rerank models.
+On a CPU like this, plan the first index of a large library as an overnight job. Searches still work during indexing over the passages that are already indexed. A GPU server cuts the first-time embedding from hours to minutes and allows the larger embedding and rerank models.
 
 ## MCP tools
 
@@ -161,7 +165,7 @@ Admin endpoints (admin key or the admin page's session cookie): `GET /admin/api/
 
 ## Limitations and ideas
 
-- One process indexes one collection at a time; a large first index on CPU takes hours.
+- One process indexes one collection at a time; a large first index on CPU takes hours (about 9.5 h for 6,700 passages on the small server above).
 - Changing `chunk_chars` or the embedding model re-embeds everything.
 - Scanned PDFs need OCR before upload.
 - Possible next steps: per-collection embedding models, incremental per-file indexing, OCR, and a native Paperclip skill that teaches agents when to search.
