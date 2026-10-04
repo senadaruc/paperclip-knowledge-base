@@ -70,7 +70,7 @@ class Embedder:
         return out
 
     def embed_query(self, text, timeout=None):
-        return self._call([self.ep.query_prefix + text], timeout)[0]
+        return self._call([self.ep.query_prefix + text], timeout or self.ep.query_timeout)[0]
 
 
 def _norm(v):

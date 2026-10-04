@@ -39,6 +39,7 @@ class Endpoint:
     document_prefix: str = ""
     batch_size: int = 16
     timeout: float = 120.0
+    query_timeout: float = 10.0     # embedding: per search; past it, search goes keyword-only instead of hanging
     extra_prompt: str = ""          # llm: appended to the system prompt (e.g. "/no_think" for Qwen3)
     max_tokens: int = 700
     reasoning_effort: str = ""      # llm: e.g. "none" turns off Qwen3 thinking on Ollama; empty = do not send

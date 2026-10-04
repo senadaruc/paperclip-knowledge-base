@@ -17,6 +17,17 @@ log = logging.getLogger("rag.store")
 STATE = os.path.join(DATA_DIR, "state.json")
 
 
+def _load_state():
+    try:
+        with open(STATE) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+    except Exception as e:  # unreadable state only costs a re-check: unchanged sources re-index from the embedding cache
+        log.warning("ignoring unreadable %s: %s", STATE, e)
+        return {}
+
+
 class Store:
     def __init__(self, s: Settings):
         self.s = s
@@ -25,7 +36,7 @@ class Store:
         self.reranker = Reranker(s.rerank)
         self.llm = LLM(s.llm)
         self._lock = threading.Lock()
-        self.state = json.load(open(STATE)) if os.path.exists(STATE) else {}
+        self.state = _load_state()
         self.status = {}
 
     def reload(self, s: Settings):
@@ -36,7 +47,10 @@ class Store:
         self.llm = LLM(s.llm)
 
     def _save(self):
-        json.dump(self.state, open(STATE, "w"), indent=1)
+        tmp = STATE + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(self.state, f, indent=1)
+        os.replace(tmp, STATE)   # a crash mid-write must not leave a state file that stops the next start
 
     def _table_names(self):
         try:
@@ -47,14 +61,20 @@ class Store:
     # ------------------------------------------------------------ indexing
     def _fp(self, name):
         col = self.s.collections[name]
-        return fingerprint(col.sources, extra=f"{self.embedder.id}|{self.s.chunk_chars}|{col.anonymise}")
+        scrub = "|".join(self.s.customer_names) if col.anonymise else ""
+        return fingerprint(col.sources, extra=f"{self.embedder.id}|{self.s.chunk_chars}|{self.s.chunk_overlap}|{col.anonymise}|{scrub}")
+
+    def _unchanged(self, name, fp):
+        return self.state.get(name, {}).get("fingerprint") == fp and name in self._table_names()
 
     def index(self, name, force=False):
         col = self.s.collections[name]
-        fp = self._fp(name)
-        if not force and self.state.get(name, {}).get("fingerprint") == fp and name in self._table_names():
+        if not force and self._unchanged(name, self._fp(name)):
             return {"collection": name, "status": "unchanged", "chunks": self.state[name].get("chunks", 0)}
         with self._lock:
+            fp = self._fp(name)
+            if not force and self._unchanged(name, fp):   # another run indexed it while this one waited
+                return {"collection": name, "status": "unchanged", "chunks": self.state[name].get("chunks", 0)}
             t0 = time.time()
             self.status[name] = "chunking"
             chunks = build_chunks(col, self.s)
@@ -81,16 +101,17 @@ class Store:
             log.info("indexed %s: %d chunks in %.0fs", name, len(chunks), time.time() - t0)
             return {"collection": name, "status": "indexed", "chunks": len(chunks), "seconds": round(time.time() - t0, 1)}
 
+    def index_safe(self, name, force=False):
+        """index() for background threads: a failure is logged and shown as the collection's status."""
+        try:
+            return self.index(name, force)
+        except Exception as e:
+            log.exception("index %s failed", name)
+            self.status[name] = f"error: {e}"
+            return {"collection": name, "status": "error", "error": str(e)[:300]}
+
     def index_all(self, force=False):
-        out = []
-        for n in self.s.collections:
-            try:
-                out.append(self.index(n, force))
-            except Exception as e:
-                log.exception("index %s failed", n)
-                self.status[n] = f"error: {e}"
-                out.append({"collection": n, "status": "error", "error": str(e)[:300]})
-        return out
+        return [self.index_safe(n, force) for n in self.s.collections]
 
     # ------------------------------------------------------------ search
     def search(self, query, collections, top_k=8):
@@ -98,23 +119,34 @@ class Store:
         if not names:
             return {"results": [], "mode": "none", "note": "no indexed collections available"}
         k = max(top_k, self.s.candidates)
+        # a table embedded by another model (the model was just changed and re-embedding is still running)
+        # gets keyword search only: its vectors are not comparable with the query vector, or not even the same size
+        stale = [n for n in names if self.state.get(n, {}).get("embedder") != self.embedder.id]
         mode, qvec = "hybrid", None
-        try:
-            qvec = self.embedder.embed_query(query)
-        except Exception as e:
-            log.warning("embedding endpoint unavailable, keyword-only search: %s", e)
-            mode = "keyword-only (embedding model unreachable)"
+        if len(stale) < len(names):
+            try:
+                qvec = self.embedder.embed_query(query)
+            except Exception as e:
+                log.warning("embedding endpoint unavailable, keyword-only search: %s", e)
+                mode = "keyword-only (embedding model unreachable)"
+        else:
+            mode = "keyword-only (re-embedding after a model change)"
+        if stale and qvec is not None:
+            mode += f" (keyword-only for {', '.join(stale)}: re-embedding after a model change)"
         fused = {}
         for n in names:
             tbl = self.db.open_table(n)
             lists = []
-            if qvec is not None:
+            if qvec is not None and n not in stale:
                 q = tbl.search(qvec)
                 try:
                     q = q.distance_type("cosine")
                 except AttributeError:
                     q = q.metric("cosine")
-                lists.append(q.limit(k).to_list())
+                try:
+                    lists.append(q.limit(k).to_list())
+                except Exception as e:
+                    log.warning("vector search on %s failed: %s", n, e)
             try:
                 lists.append(tbl.search(query, query_type="fts").limit(k).to_list())
             except Exception as e:
@@ -164,8 +196,8 @@ class Store:
             status = self.status.get(n, "ready" if st else "not indexed")
             if status in ("ready", "empty", "not indexed") and st and st.get("fingerprint") != self._fp(n):
                 status = "changes pending"   # files added/changed/removed since the last index run
-            elif status == "not indexed" and n in [k for k in self.s.collections]:
-                status = "queued"
+            elif status == "not indexed":
+                status = "queued"            # the scheduler indexes every configured collection
             out.append({"name": n, "description": c.description, "chunks": st.get("chunks", 0),
                         "indexed_at": time.strftime("%Y-%m-%d %H:%M", time.localtime(st["indexed_at"])) if st.get("indexed_at") else None,
                         "status": status})

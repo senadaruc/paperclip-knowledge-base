@@ -28,9 +28,9 @@ flowchart LR
 
 - **Hybrid search that understands paraphrases.** Vector search and full-text search run side by side and are merged with reciprocal rank fusion, then a cross-encoder reranks the best candidates. Exact product names still match; "account hijacked" still finds "compromised accounts".
 - **Collections with access control.** Each Paperclip connection gets its own key, and the key decides which collections it can search. A staff-facing agent can never reach the leadership collection, even if asked to.
-- **Models wherever you want them.** Embedding, reranking and the optional answer model are plain OpenAI-compatible endpoints: the bundled Ollama on CPU, your own GPU server (vLLM, GPUStack, …) or a hosted API. Switch from the UI; the service re-embeds automatically when the embedding model changes. If the embedding endpoint is down, search degrades to keyword-only instead of failing.
+- **Models wherever you want them.** Embedding, reranking and the optional answer model are plain OpenAI-compatible endpoints: the bundled Ollama on CPU, your own GPU server (vLLM, GPUStack, …) or a hosted API. Switch from the UI; the service re-embeds automatically when the embedding model changes, and until a collection is re-embedded it is searched by keyword only. If the embedding endpoint is down or slower than `query_timeout` (10 s), search degrades to keyword-only instead of failing.
 - **Drop-in ingestion.** Markdown wikis (with page links), folders of PDF / Word / Excel / Markdown files, and a Q&A library in JSON Lines. Changed sources are re-indexed on a schedule; finished embeddings are cached, so only new text is embedded again.
-- **Optional anonymisation.** Collections marked `anonymise: true` replace configured customer names before indexing — useful when past answers to customer questionnaires should be reusable by everyone.
+- **Optional anonymisation.** Collections marked `anonymise: true` replace configured customer names before indexing, in the passage text and in everything else agents get back (titles, sections, file names, metadata) — useful when past answers to customer questionnaires should be reusable by everyone.
 - **A management page inside Paperclip.** The plugin adds **Knowledge** to the sidebar: collection status and re-index, drag-and-drop upload and delete, model settings with presets and a connection test, a test search that shows exactly what agents get, and the access map.
 
 <details>
@@ -83,10 +83,10 @@ Tell the agent when to use them, for example in its instructions or a skill:
 ### 3. Install the plugin (management page in Paperclip)
 
 ```bash
-cd ../plugin
-npm install && npm run build
-npx paperclipai plugin install "$(pwd)"
+npx paperclipai plugin install paperclip-plugin-knowledge-base
 ```
+
+To install from this checkout instead: `cd plugin && npm install && npm run build && npx paperclipai plugin install "$(pwd)"`.
 
 Then create a company secret holding `RAG_ADMIN_KEY`, open the plugin's settings form (`/settings/plugins/<pluginId>`), pick that secret for **adminKeyRef** (a secret picker, the key never appears in plain text) and check **ragUrl** (default `http://knowledge-base:8790`). The **Knowledge** entry appears in the sidebar.
 
@@ -143,7 +143,7 @@ On a low-power 4-core CPU (AMD Ryzen Embedded V1500B, no GPU), with the CPU defa
 | Search while indexing | about 2.5 s |
 | Paraphrase recall test, 20 reworded questions over 822 past answers, target in top 5 | **17/20 hybrid** vs 14/20 keyword-only |
 
-On a CPU like this, plan the first index of a large library as an overnight job. Searches still work during indexing over the passages that are already indexed. A GPU server cuts the first-time embedding from hours to minutes and allows the larger embedding and rerank models.
+On a CPU like this, plan the first index of a large library as an overnight job. Searches still work during indexing: collections that are already indexed answer as usual, while a collection being indexed for the first time becomes searchable when its run finishes. A GPU server cuts the first-time embedding from hours to minutes and allows the larger embedding and rerank models.
 
 ## MCP tools
 
@@ -169,6 +169,16 @@ Admin endpoints (admin key or the admin page's session cookie): `GET /admin/api/
 - Changing `chunk_chars` or the embedding model re-embeds everything.
 - Scanned PDFs need OCR before upload.
 - Possible next steps: per-collection embedding models, incremental per-file indexing, OCR, and a native Paperclip skill that teaches agents when to search.
+
+## Development
+
+```bash
+cd service
+pip install -r requirements.txt -r requirements-dev.txt
+pytest
+```
+
+The tests use a fake embedding model, so they need no Ollama, GPU or network.
 
 ## Project layout
 

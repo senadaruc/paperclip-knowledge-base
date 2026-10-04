@@ -106,8 +106,10 @@ async def admin_status(_: Request):
 @mcp.custom_route("/admin/reindex", methods=["POST"])
 async def admin_reindex(req: Request):
     name, force = req.query_params.get("collection"), req.query_params.get("force") == "1"
+    if name and name not in S.collections:
+        return JSONResponse({"error": f"unknown collection: {name}"}, 404)
     def run():
-        STORE.index(name, force) if name else STORE.index_all(force)
+        STORE.index_safe(name, force) if name else STORE.index_all(force)
     threading.Thread(target=run, daemon=True).start()
     return JSONResponse({"started": name or "all", "force": force})
 
@@ -234,7 +236,7 @@ async def admin_test(req: Request):
         if role == "rerank":
             if not STORE.reranker.enabled:
                 return "reranking is off"
-            sc = STORE.reranker.rerank("what is a playbook", ["A playbook automates response steps.", "The weather is nice."])
+            sc = STORE.reranker.rerank("how do I reset my password", ["Open Settings, then Security, and choose Reset password.", "The weather is nice."])
             return f"scores {[round(x, 2) for x in sc]}"
         if role == "llm":
             if not STORE.llm.enabled:
@@ -274,7 +276,7 @@ async def admin_upload(req: Request):
             f.write(data)
         saved.append(fn)
     if saved:
-        _bg(STORE.index, name)
+        _bg(STORE.index_safe, name)
     return JSONResponse({"saved": saved, "rejected": rejected, "indexing": bool(saved)})
 
 
@@ -287,7 +289,7 @@ async def admin_delete(req: Request):
     if not box or not path.startswith(os.path.realpath(box) + os.sep) or not os.path.isfile(path):
         return JSONResponse({"error": "file not found"}, 404)
     os.remove(path)
-    _bg(STORE.index, name)
+    _bg(STORE.index_safe, name)
     return JSONResponse({"ok": True})
 
 

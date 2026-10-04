@@ -13,7 +13,8 @@ embedding:
   # Qwen3-Embedding expects an instruction on queries (not on documents)
   query_prefix: "Instruct: Given a question, retrieve passages that answer it\nQuery: "
   batch_size: 4           # small batches keep searches responsive while indexing
-  timeout: 300
+  timeout: 300            # per indexing batch
+  query_timeout: 10       # per search; if the endpoint is slower or down, search falls back to keyword-only
 
 rerank:
   # local  = cross-encoder inside the service (CPU, ONNX via fastembed)

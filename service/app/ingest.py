@@ -210,8 +210,18 @@ def anonymiser(names):
     return lambda t: rx.sub("the customer", t)
 
 
+def scrub_chunk(ch, scrub):
+    """Anonymise every field an agent gets back, not just the passage text: section names,
+    source paths (file names) and metadata (e.g. the Q&A `source`) carry customer names too."""
+    for k in ("text", "title", "section", "source", "page"):
+        ch[k] = scrub(ch[k])
+    meta = json.loads(ch["meta"] or "{}")
+    ch["meta"] = json.dumps({k: scrub(v) if isinstance(v, str) else v for k, v in meta.items()}, ensure_ascii=False)
+    return ch
+
+
 def build_chunks(col, s):
-    scrub = anonymiser(s.customer_names) if col.anonymise else (lambda t: t)
+    scrub = anonymiser(s.customer_names) if col.anonymise else None
     seen, out = set(), []
     for src in col.sources:
         loader = LOADERS.get(src["type"])
@@ -221,6 +231,5 @@ def build_chunks(col, s):
             if len(ch["text"]) < 40 or ch["id"] in seen:
                 continue
             seen.add(ch["id"])
-            ch["text"] = scrub(ch["text"]); ch["title"] = scrub(ch["title"])
-            out.append(ch)
+            out.append(scrub_chunk(ch, scrub) if scrub else ch)
     return out
