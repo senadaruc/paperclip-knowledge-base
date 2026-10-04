@@ -2,26 +2,51 @@
   "name": "paperclip-plugin-knowledge-base",
   "version": "0.2.0",
   "description": "Paperclip plugin: manage the Knowledge Base (RAG) your agents search — collections, uploads, model locations, test search, access",
-  "type": "module",
+  "keywords": [
+    "paperclip",
+    "paperclip-plugin",
+    "knowledge-base",
+    "rag",
+    "mcp",
+    "agents"
+  ],
+  "homepage": "https://github.com/senadaruc/paperclip-knowledge-base#readme",
+  "bugs": "https://github.com/senadaruc/paperclip-knowledge-base/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/senadaruc/paperclip-knowledge-base.git",
+    "directory": "plugin"
+  },
+  "author": "Senad Aruc",
   "license": "MIT",
-  "files": ["dist"],
+  "type": "module",
+  "files": [
+    "dist"
+  ],
   "paperclipPlugin": {
     "manifest": "./dist/manifest.js",
     "worker": "./dist/worker.js",
     "ui": "./dist/ui/"
   },
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "typecheck": "tsc -p .",
+    "prepublishOnly": "npm run typecheck && npm run build"
   },
   "dependencies": {
     "@paperclipai/plugin-sdk": "^2026.916.1"
   },
   "devDependencies": {
+    "@types/node": "^24.19.1",
     "@types/react": "^19.2.0",
     "esbuild": "^0.25.0",
     "react": "^19.2.0",
     "typescript": "^5.9.0"
   },
-  "peerDependencies": { "react": ">=18" },
-  "engines": { "node": ">=24.11.0" }
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "engines": {
+    "node": ">=24.11.0"
+  }
 }
